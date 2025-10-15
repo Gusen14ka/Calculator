@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(Funcsin_plugin LANGUAGES CXX)
+
+# Require modern C++ and fix typos
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Создаём динамическую библиотеку
+add_library(funcsin SHARED funcsin.cpp)
+
+# Ссылка на внешний API - путь не менять
+target_include_directories(funcsin PRIVATE ${CMAKE_SOURCE_DIR}/../../include)
+
+# Объявляем макрос
+target_compile_definitions(funcsin PRIVATE BUILD_PLUGIN)
+
+# Положим сборочные артефакты в одно место
+set_target_properties(funcsin PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/plugins
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/plugins
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/plugins
+)

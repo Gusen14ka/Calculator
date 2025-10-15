@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(Calc LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_executable(Calc
+    main.cpp
+    include/plugin_helpers/PluginAPI.h
+    include/functional/Parser.hpp src/functional/Parser.cpp
+    include/functional/Lexer.hpp src/functional/Lexer.cpp
+    include/plugin_helpers/PluginHandle.hpp src/plugin_helpers/PluginHandle.cpp
+    include/operators/IOperator.hpp
+    include/operators/AddOperator.hpp
+    include/operators/SubOperator.hpp
+    include/operators/MulOperator.hpp
+    include/operators/DivOperator.hpp
+    include/operators/OperatorRegistry.hpp src/operators/OperatorRegistry.cpp
+)
+
+target_include_directories(Calc PRIVATE include)
+
+# Явно укажем место хранения артефактов сборки
+set_target_properties(Calc PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)

@@ -1,0 +1,29 @@
+# CMake build folders
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# VS Code settings
+.vscode/
+.cache/
+
+# Windows junk
+Thumbs.db
+Desktop.ini
+
+# Executables and object files
+*.exe
+*.obj
+*.o
+*.dll
+*.lib
+*.pdb
+
+# User-specific files
+*.user
+*.suo
+
+# Logs
+*.log
