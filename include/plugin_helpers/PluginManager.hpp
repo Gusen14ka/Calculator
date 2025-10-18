@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PluginHandle.hpp"
 #include "plugin_helpers/PluginAPI.h"
 #include "plugin_helpers/PluginHandle.hpp"
 #include <filesystem>
@@ -27,9 +26,6 @@ public:
     void scan_directory(std::filesystem::path const & dir);
 
 private:
-    bool verify_and_init_plugin(std::shared_ptr<PluginHandle> p, std::string* out_err);
-    void finish_unload(std::shared_ptr<PluginHandle> p); // shutdown + dlclose
-
     // Выгрузка плагина по имени функции
     bool unload_by_name(std::string const & path, std::string* out_err = nullptr);
 

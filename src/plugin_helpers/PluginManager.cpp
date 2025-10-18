@@ -3,7 +3,6 @@
 #include "plugin_helpers/PluginHandle.hpp"
 #include "plugin_helpers/platform.hpp"
 #include <cstddef>
-#include <exception>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -141,12 +140,13 @@ bool PluginManager::load(std::filesystem::path const & path, std::string* out_er
     // Будем ли как-то отсылать вверх err из platform_get_symbol + LOG или оставить лог только в самой функции
     plug_handle->init = reinterpret_cast<plugin_init_t>(platform_get_symbol(lib, "plugin_init"));
     plug_handle->shutdown = reinterpret_cast<plugin_shutdown_t>(platform_get_symbol(lib, "plugin_shutdown"));
-    try{
-        plug_handle->last_write = std::filesystem::last_write_time(path);
-    }catch(std::exception & e){
-        //TODO:
-        //LOG.error
+    std::error_code ec;
+    plug_handle->last_write = std::filesystem::last_write_time(path, ec);
+    if(ec){
+        //TODO : LOG.error
+        plug_handle->last_write = {};
     }
+
 
     // Добавляем в мапу с проверкой на конфикт имён
     for(auto & el: plug_handle->names){
@@ -165,13 +165,14 @@ bool PluginManager::load(std::filesystem::path const & path, std::string* out_er
     // Вызовем инициализатор плагина, если такой есть
     res = plug_handle->do_init(host_, out_err);
     if(res != 0){
-        by_path_.erase(path.string());
-        plug_handle->close_library();
-        //TODO:
+        if(!unload_by_path(path.string(), &err)){
+            //TODO:LOG.error а может и не надо второй раз
+        }
+        //TODO
         //LOG.error
         return false;
     }
-//TODO: LOG.info
+    //TODO: LOG.info
     return true;
 }
 
@@ -245,9 +246,9 @@ std::string PluginManager::to_lower_str(std::string s) const{
 bool PluginManager::has_lib_extension(std::filesystem::path const & path) const{
     auto fname = path.filename().string();
     if(fname.empty()) return false;
-    if (fname.find('.') != fname.npos) return false;                             // .hidden
-    if (fname.find('~') != fname.npos) return false;               // backup/temp with ~
-    if (fname.find(".tmp") != fname.npos) return false;            // .tmp
+    if (fname[0] == '.') return false; // .hidden
+    if (fname.find('~') != fname.npos) return false; // backup/temp with ~
+    if (fname.find(".tmp") != fname.npos) return false; // .tmp
     if (fname.find(".part") != fname.npos) return false;
 
     #ifdef _WIN32
@@ -296,6 +297,7 @@ void PluginManager::scan_directory(std::filesystem::path const & dir){
             }
         }
 
+        it = by_path_.find(path.string());
         // Проверяем на изменение файла
         auto plugin_handle = it->second;
         auto diff = new_time > plugin_handle->last_write ?

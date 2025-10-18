@@ -11,7 +11,9 @@ add_executable(Calc
     include/plugin_helpers/PluginAPI.h
     include/functional/Parser.hpp src/functional/Parser.cpp
     include/functional/Lexer.hpp src/functional/Lexer.cpp
+    include/functional/Executor.hpp src/functional/Executor.cpp
     include/plugin_helpers/PluginHandle.hpp src/plugin_helpers/PluginHandle.cpp
+    include/plugin_helpers/PluginManager.hpp src/plugin_helpers/PluginManager.cpp
     include/operators/IOperator.hpp
     include/operators/AddOperator.hpp
     include/operators/SubOperator.hpp
