@@ -18,13 +18,13 @@ void Executor::evaluate(RPN_Callable const & callItem, std::string * out_err){
 
     std::vector<double> args(callItem.arity);
     // Переносим аргументы в обратном порядке
-    for(unsigned i = callItem.arity - 1; i >= 0; --i){
+    for(int i = callItem.arity - 1; i >= 0; --i){
         args[i] = stack_.back();
         stack_.pop_back();
     }
 
     std::string err;
-    auto res = callItem.op->call(args, &err);
+    auto res = callItem.ptr->call(args, &err);
     if(err.size() != 0){
         //TODO: LOG.error
         if(out_err) *out_err = "Error in apllying callable object " + err;

@@ -15,6 +15,6 @@ public:
     
     virtual Precedence precedence(std::string* err_out) const = 0;
     virtual bool is_right_assoc_operator(std::string* err_out) const = 0;
-    virtual double call(std::vector<double> const & args, std::string* err_out);
+    virtual double call(std::vector<double> const & args, std::string* err_out) = 0;
     virtual ~ICallable() = default;
 };

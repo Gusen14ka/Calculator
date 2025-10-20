@@ -5,7 +5,8 @@
 #include <vector>
 
 void Parser::mark_near_func(std::vector<StackItem> & stack, bool& marked_cur_func){
-    for(unsigned i = stack.size() - 1; i >= 0; --i){
+    if(stack.size() == 0) return;
+    for(int i = stack.size() - 1; i >= 0; --i){
         if(auto func = std::get_if<FuncItem>(&stack[i])){
             func->has_inside = true;
             marked_cur_func = true;
@@ -17,10 +18,10 @@ void Parser::mark_near_func(std::vector<StackItem> & stack, bool& marked_cur_fun
 std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
     std::vector<RPN_item> output;
     bool marked_cur_func = false; // Вспомогательный  флаг, чтобы не делать лишних обходов стека
-    std::vector<StackItem> stack;
+    std::vector<StackItem> stack{};
+    auto prev = Token::Type::LPAREN;
     // Обрабатываем каждый токен
     for(unsigned i = 0; i < tokens.size(); ++i){
-        auto prev = Token::Type::LPAREN;
         auto const & tok = tokens[i];
         
         // В ссответсвии с типом токена, поступаем в соответсвтвии с классической реализацией shunting yard

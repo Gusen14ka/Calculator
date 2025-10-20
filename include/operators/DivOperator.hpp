@@ -4,6 +4,7 @@
 
 class DivOperator : public ICallable{
 public:
+    DivOperator() = default;
     std::string name(std::string* err_out) const override { return "/"; }
     Precedence precedence(std::string* err_out) const override { return Precedence::SECOND; }
     bool is_right_assoc_operator(std::string* err_out) const override { return false; }

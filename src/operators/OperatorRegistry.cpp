@@ -5,13 +5,14 @@ OperatorRegistry::OperatorRegistry() {
 }
 
 void OperatorRegistry::register_operator(std::shared_ptr<ICallable> op, bool unary) {
+    std::string err;
     if (op) {
-        operators_[key(op->name(), unary)] = op;
+        operators_[key(op->name(&err), unary)] = op;
     }
 }
 
 std::shared_ptr<ICallable> const OperatorRegistry::find_operator(std::string const & symbol, bool unary) const {
-    auto it = operators_.find(symbol);
+    auto it = operators_.find(key(symbol, unary));
     return it != operators_.end() ? it->second : nullptr;
 }
 

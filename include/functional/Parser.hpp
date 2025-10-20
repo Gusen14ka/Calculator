@@ -29,7 +29,7 @@ using StackItem = std::variant<OpItem, FuncItem, LParenItem>;
 
 // Элементы обратной польской нотации:
 struct RPN_Number { double val; };
-struct RPN_Callable { std::shared_ptr<ICallable> op; unsigned arity; };
+struct RPN_Callable { std::shared_ptr<ICallable> ptr; unsigned arity; };
 using RPN_item = std::variant<RPN_Number, RPN_Callable>;
 
 class Parser{

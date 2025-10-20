@@ -14,6 +14,8 @@ add_executable(Calc
     include/functional/Executor.hpp src/functional/Executor.cpp
     include/plugin_helpers/PluginHandle.hpp src/plugin_helpers/PluginHandle.cpp
     include/plugin_helpers/PluginManager.hpp src/plugin_helpers/PluginManager.cpp
+    include/plugin_helpers/platform.hpp src/plugin_helpers/platform.cpp
+    include/ICallable.hpp
     include/operators/IOperator.hpp
     include/operators/AddOperator.hpp
     include/operators/SubOperator.hpp
