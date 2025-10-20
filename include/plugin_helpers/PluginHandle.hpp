@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PluginAPI.h"
+#include "ICallable.hpp"
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -13,7 +14,8 @@
     using LibHandle = void*;
 #endif
 
-struct PluginHandle{
+class PluginHandle : public ICallable{
+public:
     LibHandle lib = nullptr;
     std::string path;
     std::vector<std::string> names;
@@ -24,12 +26,16 @@ struct PluginHandle{
     std::filesystem::file_time_type last_write{}; // Временная точка для того, чтобы не перезагружать неизменный плагин каждую итерацию
     bool initialized = false;
 
-    // Вызов функции из плагина
-    double call(unsigned argc, double const * argv, int* err, char* err_msg, int err_msg_size) const;
-
     int do_init(HostApi const* host, std::string* out_err = nullptr) noexcept;
 
     int do_shutdown(std::string* out_err = nullptr) noexcept;
 
     void close_library() noexcept;
+
+    // Оверрайд функций из интерфейса
+    std::string name(std::string* err_out) const override;
+    std::pair<int, int> arity(std::string* err_out) const override;
+    Precedence precedence(std::string* err_out) const override;
+    bool is_right_assoc_operator(std::string* err_out) const override;
+    double call(std::vector<double> const & args, std::string* err_out) override;
 };

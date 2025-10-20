@@ -1,6 +1,5 @@
 #include "functional/Lexer.hpp"
 #include <cctype>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -21,25 +20,25 @@ std::vector<Token> Lexer::tokenize(){
             continue;
         }
 
-        // Токен - идентификатор(функции), если начинается с буквы, в внутри буквы, цифры и '_'
+        // Токен - идентификатор(функции), если начинается с буквы, в внутри буквы и '_'
         if(std::isalpha(u_ch)){
             auto pos = cur_;
             ++cur_;
-            while(cur_ < end_ && (std::isalnum(static_cast<unsigned char>(input_[cur_])) || input_[cur_] == '_')){
+            while(cur_ < end_ && (std::isalpha(static_cast<unsigned char>(input_[cur_])) || input_[cur_] == '_')){
                 ++cur_;
             }
-            output.emplace_back(Token::Ident(input_.substr(pos, cur_ - pos), pos));
+            output.emplace_back(Token::Func(input_.substr(pos, cur_ - pos), pos));
             continue;
             // В конце cur_ - индекс следующего символа
         }
 
+        // Все операторы состоят НЕ из букв и цифр
         switch (u_ch) {
             // Операторы - просто добавляем
             case('+'):
             case('-'):
             case('*'):
-            case('/'):
-            case('^'):{
+            case('/'):{
                 output.emplace_back(Token::Op(std::string(1, u_ch), cur_));
                 ++cur_;
                 break;
@@ -68,11 +67,13 @@ std::vector<Token> Lexer::tokenize(){
                 break;
             }
             default:{
-                //TODO:
-                throw std::runtime_error("Unexpected symbol at" + std::to_string(cur_));
+                auto pos = cur_;
+                while(!std::isalnum(u_ch) && u_ch != ' ' && cur_ < end_){
+                    ++cur_;
+                }
+                output.emplace_back(Token::Op(input_.substr(cur_ - pos), pos));
             }
         }
-
     }
     if(parenBalance != 0) {
         //TODO:

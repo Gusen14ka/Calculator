@@ -4,27 +4,6 @@
 #include <string>
 #include <winerror.h>
 
-double PluginHandle::call(unsigned argc, double const * argv, int* err, char* err_msg, int err_msg_size) const{
-    if(!func){
-        if(err){
-            *err = 1;
-            if(err_msg_size){
-                snprintf(err_msg, err_msg_size, "no plugin function");
-            }
-        }
-        return 0.0;
-    }
-
-    double res = func(argc, argv, err, err_msg, err_msg_size);
-    if(err){
-        if(*err != 0){
-            //TODO: обработка возвращенной ошибки из плагина
-            throw;
-        }
-    }
-    return res;
-}
-
 int PluginHandle::do_init(HostApi const* host, std::string* out_err) noexcept{
     if(!init){
         initialized = true;
@@ -65,3 +44,95 @@ void PluginHandle::close_library() noexcept{
         lib = nullptr;
     }
 }
+
+std::string PluginHandle::name(std::string* err_out) const {
+    if(info){
+        return std::string(info->name, info->name_len);
+    }
+    //TODO LOG.error
+    if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    return "";
+}
+
+std::pair<int, int> PluginHandle::arity(std::string* err_out) const{
+    if(info){
+        return {info->min_args, info->max_args};
+    }
+    //TODO LOG.error
+    if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    return {};
+}
+
+Precedence PluginHandle::precedence(std::string* err_out) const{
+    if(info){
+        return Precedence::ZERO;
+    }
+    //TODO LOG.error
+    if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    return {};
+}
+
+bool PluginHandle::is_right_assoc_operator(std::string* err_out) const{
+    if(info){
+        return false;
+    }
+    //TODO LOG.error
+    if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    return {};
+}
+
+double PluginHandle::call(std::vector<double> const & args, std::string* err_out){
+    if(!info){
+        if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+        return {};
+    }
+    // Подготавливаем аргументы
+    int err_code = 0;
+    char err_msg[ERROR_BUF_SIZE] = {0};
+    double res = 0.0;
+
+    if(!func){
+        if(err_out) *err_out = "no plugin function" + path;
+        //TODO: LOG.error
+        return 0.0;
+    }
+
+    unsigned argc = args.size();
+    if(!((info->max_args == -1 && argc >= info->min_args) || 
+        (argc >= info->min_args && argc <= info->max_args)))
+    {
+        if(err_out) *err_out = "Arguments mismatch" + path;
+        //TODO: LOG.error
+        return 0.0;
+    }
+
+    // Вообще не планируется что плагины будут кидать исключения, но на всякий поддерживаем
+    try{
+        res = func(argc, args.data(), &err_code, err_msg, ERROR_BUF_SIZE);
+    }
+    catch (const std::exception& e) {
+        //TODO: LOG.error
+        if(err_out) *err_out = "plugin threw exception: " + std::string(e.what());
+        if(err_out && err_code != 0) *err_out += " Error code: " + std::to_string(err_code);
+        if(err_out && err_msg[0] != '0') *err_out += " Error message: " + std::string(err_msg);
+        return 0.0;
+    } catch (...) {
+        //TODO: LOG.error
+        if(err_out) *err_out = "plugin threw unknown exception from function: " + path;
+        if(err_out && err_code != 0) *err_out += " Error code: " + std::to_string(err_code);
+        if(err_out && err_msg[0] != '0') *err_out += " Error message: " + std::string(err_msg);
+        return 0.0;
+    }
+
+    if(err_code != 0){
+        //TODO: LOG.error
+        if(err_out && err_code != 0) *err_out =  "Plugin returned error Error code: " + std::to_string(err_code);
+        if(err_out && err_msg[0] != '0') *err_out += " Error message: " + std::string(err_msg);
+        return 0.0;
+    }
+
+    return res;
+}
+
+
+

@@ -1,14 +1,14 @@
 #pragma once
-#include "IOperator.hpp"
+#include "ICallable.hpp"
 #include <vector>
 
-class MulOperator : public IOperator{
+class MulOperator : public ICallable{
 public:
-    std::string name() const override { return "*"; }
-    Op_precedence precedence() const override { return Op_precedence::SECOND; }
-    bool is_right_assoc() const override { return false; }
-
-    double apply(std::vector<double> const & args, std::string * err_out) const override {
+    std::string name(std::string* err_out) const override { return "*"; }
+    Precedence precedence(std::string* err_out) const override { return Precedence::SECOND; }
+    bool is_right_assoc_operator(std::string* err_out) const override { return false; }
+    std::pair<int, int> arity(std::string* err_out) const override { return {2, 2}; }
+    double call(std::vector<double> const & args, std::string * err_out) override {
         if(args.size() != 2){
             //TODO: LOG.error
             if(err_out) *err_out = "expected 2 args";

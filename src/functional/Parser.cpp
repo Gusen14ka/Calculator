@@ -1,5 +1,6 @@
 #include "functional/Parser.hpp"
 #include <charconv>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -35,10 +36,10 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
             }
 
             // Токен - предположительно функция (имя функции)
-            case Token::Type::IDENT: {
+            case Token::Type::FUNC: {
                 bool isFunc = (i + 1 < tokens.size() && tokens[i+1].type == Token::Type::LPAREN);
                 if(isFunc){
-                    prev = Token::Type::IDENT;
+                    prev = Token::Type::FUNC;
                     stack.emplace_back(FuncItem{tok, tok.text, false, 0});
                     if(!marked_cur_func){
                         mark_near_func(stack, marked_cur_func);
@@ -55,40 +56,51 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
             // Токен - оператор
             case Token::Type::OP: {
                 bool isUnary = (prev == Token::OP || prev == Token::LPAREN || prev == Token::COMMA);
+                unsigned arity = isUnary ? 1 : 2;
                 auto opInfo = opReg_.find_operator(tok.text, isUnary);
                 if(!opInfo){
-                    // TODO: обработка исключения
-                    throw;
+                    opInfo = plMg_.find(tok.text);
+                    if(!opInfo){
+                        //TODO LOG.error
+                        throw;
+                    }
                 }
 
                 while(!stack.empty()){
                     if(auto topOp = std::get_if<OpItem>(&stack.back())){
                         auto topInfo = topOp->op;
                         bool goToPop = false;
+
+                        std::string err;
                         
                         // Если следующий оператор имеет больший проиритет или
                         // если текущий оператор лево-ассоциативный и следующий оператор имеет такой же приоритет
                         // то убираем его со стека и пушим в output
-                        if(!opInfo->is_right_assoc()){
-                            if(opInfo->precedence() == topInfo->precedence()){
+                        if(!opInfo->is_right_assoc_operator(&err)){
+                            if(opInfo->precedence(&err) == topInfo->precedence(&err)){
                                 goToPop = true;
                             }
                         }
                         else{
-                            if(opInfo->precedence() < topInfo->precedence()){
+                            if(opInfo->precedence(&err) < topInfo->precedence(&err)){
                                 goToPop = true;
                             }
                         }
 
+                        if(err != ""){
+                            //TODO: LOG.error
+                            throw;
+                        }
+
                         if(goToPop){
-                            output.emplace_back(RPN_Op{topInfo});
+                            output.emplace_back(RPN_Callable{topInfo, arity});
                             stack.pop_back();
                             continue;
                         }
                     }
                     break;
                 }
-                stack.emplace_back(OpItem{tok, opInfo});
+                stack.emplace_back(OpItem{tok, opInfo, arity});
                 break;
             }
 
@@ -104,7 +116,7 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                 prev = Token::Type::COMMA;
                 while(!stack.empty()){
                     if(auto topOp = std::get_if<OpItem>(&stack.back())){
-                        output.emplace_back(RPN_Op{topOp->op});
+                        output.emplace_back(RPN_Callable{topOp->op, topOp->arity});
                         stack.pop_back();
                     }
                     else{
@@ -120,7 +132,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                 bool found = false;
                 for (int k = idxLP - 1; k >= 0; --k) {
                     if (auto pf = std::get_if<FuncItem>(&stack[k])){ 
-                        pf->comma_count += 1; found = true; break;
+                        pf->comma_count += 1; 
+                        found = true; 
+                        break;
                     }
                     if (std::holds_alternative<LParenItem>(stack[k])){
                         break; // встретили внешнюю '(' — значит это не функция
@@ -138,7 +152,7 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                 prev = Token::Type::RPAREN;
                 while(!stack.empty()){
                     if(auto topOp = std::get_if<OpItem>(&stack.back())){
-                        output.emplace_back(RPN_Op{topOp->op});
+                        output.emplace_back(RPN_Callable{topOp->op, topOp->arity});
                         stack.pop_back();
                     }
                     else{
@@ -154,12 +168,17 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
 
                 stack.pop_back(); // Убрали открывающую скобку из стека
 
-                //Если наверху осталась функция - убираем её в output
+                //Если наверху осталась функция - отправляем её в output
                 if(!stack.empty() && std::holds_alternative<FuncItem>(stack.back())){
                     auto func = std::get<FuncItem>(stack.back());
                     stack.pop_back();
                     unsigned argc = func.has_inside ? (func.comma_count + 1) : 0;
-                    output.emplace_back(RPN_Func{func.name, argc});
+                    auto callable = plMg_.find(func.name);
+                    if(!callable){
+                        //TODO: LOG.error
+                        throw;
+                    }
+                    output.emplace_back(RPN_Callable{callable, argc});
                     marked_cur_func = false;
                 }
             }
@@ -173,7 +192,7 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
             throw;
         }
         if(auto topOp = std::get_if<OpItem>(&stack.back())){
-            output.emplace_back(RPN_Op{topOp->op});
+            output.emplace_back(RPN_Callable{topOp->op, topOp->arity});
             stack.pop_back();
         }
         else{
