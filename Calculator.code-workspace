@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "plugins/funcsin"
+		},
+		{
+			"path": "plugins/funcln"
+		},
+		{
+			"path": "plugins/opUnarMinus"
+		}
+	],
+	"settings": {}
+}
