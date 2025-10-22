@@ -9,8 +9,8 @@ class OperatorRegistry {
 public:
     OperatorRegistry();
 
-    // Добавление оператора
-    void register_operator(std::shared_ptr<ICallable> op, bool unary);
+    // Добавление всех встроенных операторов
+    void register_builtin_operators();
 
     // Поиск оператора по его символу
     std::shared_ptr<ICallable> const find_operator(std::string const & symbol, bool unary) const;

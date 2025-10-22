@@ -37,14 +37,14 @@ public:
     Parser(OperatorRegistry const & opReg, PluginManager const & plMg) :
         opReg_(opReg), plMg_(plMg) {}
 
-    std::vector<RPN_item> shunting_yard(std::vector<Token> const& tokens);
+    std::vector<RPN_item> shunting_yard(std::vector<Token> const& tokens, std::string& err_out);
     
 private:
     // Помечаем функцию, что у неё есть аргументы
     static void mark_near_func(std::vector<StackItem> & stack, bool& marked_cur_func);
 
     // Парсинг строки-токена в число
-    static double parseDouble(std::string const & str);
+    static double parseDouble(std::string const & str, std::string & err_out);
 
     OperatorRegistry const & opReg_;
     PluginManager const & plMg_;

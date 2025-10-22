@@ -16,11 +16,9 @@ target_include_directories(funcsin PRIVATE ${CMAKE_SOURCE_DIR}/../../include)
 # Объявляем макрос
 target_compile_definitions(funcsin PRIVATE BUILD_PLUGIN)
 
-get_filename_component(PLUGIN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/.." ABSOLUTE)
+get_filename_component(PLUGIN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/../../build/plugins" ABSOLUTE)
 
 # Положим сборочные артефакты в одно место
 set_target_properties(funcsin PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${PLUGIN_OUTPUT_DIR}"
-    #LIBRARY_OUTPUT_DIRECTORY "${PLUGIN_OUTPUT_DIR}"
-    #ARCHIVE_OUTPUT_DIRECTORY "${PLUGIN_OUTPUT_DIR}"
 )

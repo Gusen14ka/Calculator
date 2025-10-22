@@ -1,13 +1,17 @@
 #include "plugin_helpers/PluginHandle.hpp"
 #include "plugin_helpers/PluginAPI.h"
 #include "plugin_helpers/platform.hpp"
+#include "logger/Logger.hpp"
 #include <string>
 #include <winerror.h>
 
+#define LOG Logger::instance()
+
 int PluginHandle::do_init(HostApi const* host, std::string* out_err) noexcept{
+    LOG.info("Plugin init start", "PluginHandle::do_init");
     if(!init){
         initialized = true;
-        //TODO: LOG.debug
+        LOG.warning("Plugin hasn't init_func: " + path, "PluginHandle::do_init");
         return 0;
     }
     char errbuf[ERROR_BUF_SIZE] = {0};
@@ -15,26 +19,29 @@ int PluginHandle::do_init(HostApi const* host, std::string* out_err) noexcept{
     if(res != 0){
         if(out_err){
             *out_err = std::string(errbuf[0] ? errbuf : "plugin_init in " + path + " failed");
+            LOG.error("Plugin init failed: " + path, "PluginHandle::do_init");
             return 1.0;
         }
     }
     initialized = true;
+    LOG.info("Plugin succesfully inited: " + path,"PluginHandle::do_init");
     return 0.0;
 }
 
 int PluginHandle::do_shutdown(std::string* out_err) noexcept{
+    LOG.info("Plugin shutdown start", "PluginHandle::do_shutdown");
     if(shutdown && initialized){
         try{
             shutdown();
         }catch(...){
             if(out_err) *out_err = "plugin_shutdown in " + path + " failed";
-            //TODO:
-            // LOG.error
+            LOG.error("Plugin failed shutdown: " + path, "PluginHandle::do_shutdown");
             initialized = false;
             return 1.0;
         }
     }
     initialized = false;
+    LOG.info("Plugin successfully shutdowned: " + path, "PluginHandle::do_shutdown");
     return 0.0;
 }
 
@@ -43,47 +50,53 @@ void PluginHandle::close_library() noexcept{
         platform_free_library(lib);
         lib = nullptr;
     }
+    LOG.info("Successfulle closed library: " + path, "PluginHandle::close_library");
 }
 
 std::string PluginHandle::name(std::string* err_out) const {
     if(info){
+        LOG.info("Successfully get plugin name: " + path, "PluginHandle::name");
         return std::string(info->name, info->name_len);
     }
-    //TODO LOG.error
-    if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    if(err_out) *err_out = "Plugin_info is nullptr: " + path;
+    LOG.error("Plugin info is nullptr: " + path, "PluginHandle::name");
     return "";
 }
 
 std::pair<int, int> PluginHandle::arity(std::string* err_out) const{
     if(info){
+        LOG.info("Successfully get plugin arity: " + path, "PluginHandle::arity");
         return {info->min_args, info->max_args};
     }
-    //TODO LOG.error
     if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    LOG.error("Plugin info is nullptr: " + path, "PluginHandle::arity");
     return {};
 }
 
 Precedence PluginHandle::precedence(std::string* err_out) const{
     if(info){
+        LOG.info("Successfully get plugin precedence: " + path, "PluginHandle::precedence");
         return Precedence::ZERO;
     }
-    //TODO LOG.error
     if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    LOG.error("Plugin info is nullptr: " + path, "PluginHandle::precedence");
     return {};
 }
 
 bool PluginHandle::is_right_assoc_operator(std::string* err_out) const{
     if(info){
-        return false;
+        LOG.info("Successfully get plugin precedence: " + path, "PluginHandle::is_right_assoc_operator");
+        return info->is_right_assoc_oper;
     }
-    //TODO LOG.error
     if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+    LOG.error("Plugin info is nullptr: " + path, "PluginHandle::is_right_assoc_operator");
     return {};
 }
 
 double PluginHandle::call(std::vector<double> const & args, std::string* err_out){
     if(!info){
         if(err_out) *err_out = "Pugin_info is nullptr: " + path;
+        LOG.error("Plugin info is nullptr: " + path, "PluginHandle::call");
         return {};
     }
     // Подготавливаем аргументы
@@ -93,7 +106,7 @@ double PluginHandle::call(std::vector<double> const & args, std::string* err_out
 
     if(!func){
         if(err_out) *err_out = "no plugin function" + path;
-        //TODO: LOG.error
+        LOG.error("Plugin function is nullptr: " + path, "PluginHandle::call");
         return 0.0;
     }
 
@@ -102,7 +115,7 @@ double PluginHandle::call(std::vector<double> const & args, std::string* err_out
         (argc >= info->min_args && argc <= info->max_args)))
     {
         if(err_out) *err_out = "Arguments mismatch" + path;
-        //TODO: LOG.error
+        LOG.error("Plugin function arguments mismatch: " + path, "PluginHandle::call");
         return 0.0;
     }
 
@@ -111,23 +124,28 @@ double PluginHandle::call(std::vector<double> const & args, std::string* err_out
         res = func(argc, args.data(), &err_code, err_msg, ERROR_BUF_SIZE);
     }
     catch (const std::exception& e) {
-        //TODO: LOG.error
-        if(err_out) *err_out = "plugin threw exception: " + std::string(e.what());
-        if(err_out && err_code != 0) *err_out += " Error code: " + std::to_string(err_code);
-        if(err_out && err_msg[0] != '0') *err_out += " Error message: " + std::string(err_msg);
+        std::string err = "Plugin" + path + " threw exception: " + std::string(e.what());
+        if(err_code != 0) err += " Error code: " + std::to_string(err_code);
+        if(err_msg[0] != '0') err += " Error message: " + std::string(err_msg);
+        if(err_out) *err_out =  err;
+        LOG.error(err, "PluginHandle::call");
         return 0.0;
     } catch (...) {
-        //TODO: LOG.error
-        if(err_out) *err_out = "plugin threw unknown exception from function: " + path;
-        if(err_out && err_code != 0) *err_out += " Error code: " + std::to_string(err_code);
-        if(err_out && err_msg[0] != '0') *err_out += " Error message: " + std::string(err_msg);
+
+        std::string err = "Plugin threw unknown exception from function: " + path;
+        if(err_code != 0) err += " Error code: " + std::to_string(err_code);
+        if(err_msg[0] != '0') err += " Error message: " + std::string(err_msg);
+        if(err_out) *err_out = err;
+        LOG.error(err, "PluginHandle::call");
         return 0.0;
     }
 
     if(err_code != 0){
-        //TODO: LOG.error
-        if(err_out && err_code != 0) *err_out =  "Plugin returned error Error code: " + std::to_string(err_code);
-        if(err_out && err_msg[0] != '0') *err_out += " Error message: " + std::string(err_msg);
+        std::string err;
+        if(err_code != 0) err =  "Plugin returned error Error code: " + std::to_string(err_code);
+        if(err_msg[0] != '0') err += " Error message: " + std::string(err_msg);
+        if(err_out) *err_out = err;
+        LOG.error(err, "PluginHandle::call");
         return 0.0;
     }
 

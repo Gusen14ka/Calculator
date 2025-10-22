@@ -1,10 +1,12 @@
 #include "functional/Lexer.hpp"
+#include "logger/Logger.hpp"
 #include <cctype>
 #include <string>
 #include <vector>
 
+#define LOG Logger::instance()
 
-std::vector<Token> Lexer::tokenize(){
+std::vector<Token> Lexer::tokenize(std::string& err_out){
     std::vector<Token> output;
     output.reserve(64);
     // Если останется 0, значит кол-во открывающих и зкрывающих одинаково
@@ -16,7 +18,13 @@ std::vector<Token> Lexer::tokenize(){
         if(std::isdigit(u_ch) ||
             (u_ch == '.' && cur_ + 1 < end_ && std::isdigit(static_cast<unsigned char>(input_[cur_ + 1]))))
         {
-            output.push_back(lex_number());
+            std::string err;
+            auto num = lex_number(err);
+            if(!err.empty()){
+                err_out = std::move(err);
+                return {};
+            }
+            output.push_back(num);
             continue;
         }
 
@@ -61,8 +69,9 @@ std::vector<Token> Lexer::tokenize(){
                 ++cur_;
                 --parenBalance;
                 if(parenBalance < 0){
-                    //TODO:
-                    throw;
+                    err_out = "The balance of opening and closing parentheses has been disrupted";
+                    LOG.error(err_out, "Lexer::tokenize");
+                    return {};
                 }
                 break;
             }
@@ -76,8 +85,9 @@ std::vector<Token> Lexer::tokenize(){
         }
     }
     if(parenBalance != 0) {
-        //TODO:
-        throw;
+        err_out = "The balance of opening and closing parentheses has been disrupted.";
+        LOG.error(err_out, "Lexer::tokenize");
+        return {};
     }
     return output;
 }
@@ -88,7 +98,7 @@ void Lexer::skip_spaces(){
     }
 }
 
-Token Lexer::lex_number(){
+Token Lexer::lex_number(std::string& err_out){
     auto pos = cur_;
     bool hasDot = false;
     while(cur_ < end_){
@@ -106,8 +116,9 @@ Token Lexer::lex_number(){
                 continue;
             }
             else{
-                //TODO:
-                throw;
+                err_out = "The number recording format is broken. There can only be one decimal point in a number";
+                LOG.error(err_out, "Lexer::tokenize");
+                return {};
             }
         }
         // Экспоненциальаня часть
@@ -120,8 +131,9 @@ Token Lexer::lex_number(){
             }
             // После знака экспоненты в экспоненциальной форме обязательно должна быть степень
             if(cur_ >= end_ || !std::isdigit(static_cast<unsigned char>(input_[cur_]))){
-                //TODO:
-                throw;
+                err_out = "The number recording format is broken. After the exponent sign, the exponent is expected to be";
+                LOG.error(err_out, "Lexer::tokenize");
+                return {};
             }
             // Считываем значение степени
             while(cur_ < end_ && std::isdigit(static_cast<unsigned char>(input_[cur_]))){

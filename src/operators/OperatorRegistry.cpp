@@ -1,14 +1,27 @@
 #include "operators/OperatorRegistry.hpp"
+#include "ICallable.hpp"
+#include "operators/AddOperator.hpp"
+#include "operators/DivOperator.hpp"
+#include "operators/MulOperator.hpp"
+#include "operators/SubOperator.hpp"
+#include <memory>
 
 OperatorRegistry::OperatorRegistry() {
     operators_.reserve(5);
 }
 
-void OperatorRegistry::register_operator(std::shared_ptr<ICallable> op, bool unary) {
+void OperatorRegistry::register_builtin_operators() {
     std::string err;
-    if (op) {
-        operators_[key(op->name(&err), unary)] = op;
-    }
+
+    auto addOp = std::make_shared<AddOperator>();
+    auto divOp = std::make_shared<DivOperator>();
+    auto mulOp = std::make_shared<MulOperator>();
+    auto subOp = std::make_shared<SubOperator>();
+
+    operators_[ key(addOp->name(&err), false) ] = addOp;
+    operators_[ key(divOp->name(&err), false) ] = divOp;
+    operators_[ key(mulOp->name(&err), false) ] = mulOp;
+    operators_[ key(subOp->name(&err), false) ] = subOp;
 }
 
 std::shared_ptr<ICallable> const OperatorRegistry::find_operator(std::string const & symbol, bool unary) const {

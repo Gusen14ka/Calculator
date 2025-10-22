@@ -15,6 +15,7 @@ add_executable(Calc
     include/plugin_helpers/PluginHandle.hpp src/plugin_helpers/PluginHandle.cpp
     include/plugin_helpers/PluginManager.hpp src/plugin_helpers/PluginManager.cpp
     include/plugin_helpers/platform.hpp src/plugin_helpers/platform.cpp
+    include/plugin_helpers/hostApiUtils.hpp src/plugin_helpers/hostApiUtils.cpp
     include/ICallable.hpp
     include/operators/IOperator.hpp
     include/operators/AddOperator.hpp
@@ -22,6 +23,8 @@ add_executable(Calc
     include/operators/MulOperator.hpp
     include/operators/DivOperator.hpp
     include/operators/OperatorRegistry.hpp src/operators/OperatorRegistry.cpp
+    include/logger/Logger.hpp src/logger/Logger.cpp
+    libs/tinyfiledialogs/tinyfiledialogs.h libs/tinyfiledialogs/tinyfiledialogs.cpp
 )
 
 target_include_directories(Calc PRIVATE include)

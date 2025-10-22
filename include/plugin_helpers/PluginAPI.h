@@ -19,13 +19,10 @@ using plugin_func_t =  double (*)(unsigned argc, double const* argv,
 
 struct HostApi{
     // Функция логирования
-    void (*log)(char const* msg);
+    void (*log)(char const* msg, unsigned msg_size);
 
     // Сообщение об ошибке
-    void (*report_error)(char const* msg);
-    
-    // Освобождение памяти, переданной в плагин
-    void (*host_free)(void* ptr);
+    void (*report_error)(char const* msg, unsigned msg_size);
 };
 
 struct PluginInfo{
@@ -58,6 +55,12 @@ struct PluginInfo{
 
     // Описание
     char const* description;
+
+    // Является ли оператором
+    bool is_oper;
+
+    // Является ли правоассоциативным оператором
+    bool is_right_assoc_oper;
 };
 
 // Экспортируемые функции в плагине:

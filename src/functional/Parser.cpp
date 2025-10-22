@@ -1,8 +1,11 @@
 #include "functional/Parser.hpp"
+#include "logger/Logger.hpp"
 #include <charconv>
 #include <string>
 #include <variant>
 #include <vector>
+
+#define LOG Logger::instance()
 
 void Parser::mark_near_func(std::vector<StackItem> & stack, bool& marked_cur_func){
     if(stack.size() == 0) return;
@@ -15,7 +18,7 @@ void Parser::mark_near_func(std::vector<StackItem> & stack, bool& marked_cur_fun
     }
 }
 
-std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
+std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens, std::string & err_out){
     std::vector<RPN_item> output;
     bool marked_cur_func = false; // Вспомогательный  флаг, чтобы не делать лишних обходов стека
     std::vector<StackItem> stack{};
@@ -29,7 +32,13 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
             // Токен - число
             case Token::Type::NUMBER: {
                 prev = Token::Type::NUMBER;
-                output.emplace_back(RPN_Number{parseDouble(tok.text)});
+                std::string err;
+                auto num = parseDouble(tok.text, err);
+                if(!err.empty()){
+                    err_out = std::move(err);
+                    return {};
+                }
+                output.emplace_back(RPN_Number{num});
                 if(!marked_cur_func){
                     mark_near_func(stack, marked_cur_func);
                 }
@@ -48,8 +57,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                     marked_cur_func = false;
                 }
                 else{
-                    // TODO: обработка исключения
-                    throw;
+                    err_out = "The syntax of the function entry is broken. An opening parenthesis is expected after the function name";
+                    LOG.error(err_out, "Parser::shunting_yard");
+                    return{};
                 }
                 break;
             }
@@ -62,8 +72,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                 if(!opInfo){
                     opInfo = plMg_.find(tok.text);
                     if(!opInfo){
-                        //TODO LOG.error
-                        throw;
+                        err_out = "Syntax error. Unknown operator: " + tok.text;
+                        LOG.error(err_out, "Parser::shunting_yard");
+                        return{};
                     }
                 }
 
@@ -88,9 +99,10 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                             }
                         }
 
-                        if(err != ""){
-                            //TODO: LOG.error
-                            throw;
+                        if(!err.empty()){
+                            err_out = err;
+                            LOG.error(err, "Parser::shunting_yard");
+                            return{};
                         }
 
                         if(goToPop){
@@ -126,8 +138,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                 }
                 // В стеке гарантированно должна всё ещё быть открывающая скобка и функция
                 if(stack.empty() || !std::holds_alternative<LParenItem>(stack.back())){
-                    // TODO: обработка исключения
-                    throw;
+                    err_out = "Syntax error. An unexpected comma";
+                    LOG.error(err_out, "Parser::shunting_yard");
+                    return {};
                 }
                 int idxLP = stack.size() - 1;
                 bool found = false;
@@ -142,8 +155,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                     }
                 }
                 if (!found) {
-                    // TODO: обработка исключения
-                    throw;
+                    err_out = "Syntax error. An unexpected comma";
+                    LOG.error(err_out, "Parser::shunting_yard");
+                    return {};
                 }
                 break;
             }
@@ -163,8 +177,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                 
                 // В стеке гарантированно должна всё ещё быть открывающая скобка
                 if(stack.empty() || !std::holds_alternative<LParenItem>(stack.back())){
-                    // TODO: обработка исключения
-                    throw;
+                    err_out = "The balance of opening and closing parentheses has been disrupted";
+                    LOG.error(err_out, "Parser::shunting_yard");
+                    return {};
                 }
 
                 stack.pop_back(); // Убрали открывающую скобку из стека
@@ -176,8 +191,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
                     unsigned argc = func.has_inside ? (func.comma_count + 1) : 0;
                     auto callable = plMg_.find(func.name);
                     if(!callable){
-                        //TODO: LOG.error
-                        throw;
+                        err_out = "Syntax error. Unknown function: " + func.name;
+                        LOG.error(err_out, "Parser::shunting_yard");
+                        return {};
                     }
                     output.emplace_back(RPN_Callable{callable, argc});
                     marked_cur_func = false;
@@ -189,16 +205,17 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
     // Если что-то осталось обрабатываем
     while(!stack.empty()){
         if(std::holds_alternative<LParenItem>(stack.back())){
-            // TODO: обработка исключения
-            throw;
+            err_out = "Syntax error. An unexpected opening parenthesis";
+            LOG.error(err_out, "Parser::shunting_yard");
+            return {};
         }
         if(auto topOp = std::get_if<OpItem>(&stack.back())){
             output.emplace_back(RPN_Callable{topOp->op, topOp->arity});
             stack.pop_back();
         }
         else{
-            // TODO: обработка исключения
-            throw;
+            err_out = "Syntax error...";
+            LOG.error(err_out, "Parser::shunting_yard");
         }
     }
 
@@ -206,7 +223,7 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens){
 
 }
 
-double Parser::parseDouble(std::string const & str){
+double Parser::parseDouble(std::string const & str, std::string & err_out){
     const char* first = str.data();
     const char* last  = str.data() + str.size();
     double val = 0;
@@ -218,18 +235,18 @@ double Parser::parseDouble(std::string const & str){
         if (ptr == last) {
             return val; // всё хорошо
         } else {
-            // TODO:
-            //std::cerr << "Trailing garbage after number: '" << std::string(ptr, last) << "'\n";
-            throw;
+            err_out = "Error in std::from_chars: " + str;
+            LOG.error(err_out, "Parser::parseDouble");
+            return{};
         }
     }
 
     if (ec == std::errc::invalid_argument) {
-        // TODO:
-        // std::cerr << "Invalid number: '" << str << "'\n";
+        err_out = "Error in std::from_chars: invalid_argument: "  + str;
     } else if (ec == std::errc::result_out_of_range) {
-        // TODO:
-        //std::cerr << "Number out of range: '" << str << "'\n";
+        err_out = "Error in std::from_chars: invalid_argument: "  + str;
     }
-    throw;
+    if(err_out.empty()) err_out = "Error in std::from_chars: " + str;
+    LOG.error(err_out, "Parser::parseDouble");
+    return{};
 }

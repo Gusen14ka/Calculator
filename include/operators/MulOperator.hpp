@@ -1,6 +1,9 @@
 #pragma once
 #include "ICallable.hpp"
+#include "logger/Logger.hpp"
 #include <vector>
+
+#define LOG Logger::instance()
 
 class MulOperator : public ICallable{
 public:
@@ -11,8 +14,9 @@ public:
     std::pair<int, int> arity(std::string* err_out) const override { return {2, 2}; }
     double call(std::vector<double> const & args, std::string * err_out) override {
         if(args.size() != 2){
-            //TODO: LOG.error
-            if(err_out) *err_out = "expected 2 args";
+            if(err_out) *err_out = "Expected 2 args";
+            LOG.error("Expected 2 arguments, get: " + std::to_string(args.size()), "MulOperator::call");
+            return{};
         }
         return args[0] * args[1];
     }
