@@ -2,7 +2,8 @@
 #include <vector>
 #include <string>
 
-enum class Op_precedence {ZERO, FIRST, SECOND, THIRD};
+// Чем больше - тем более высокий приоритет
+enum class Op_precedence { ZERO, FIRST, SECOND, THIRD};
 
 class IOperator{
 public:

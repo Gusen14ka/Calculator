@@ -1,9 +1,11 @@
 #include "plugin_helpers/PluginHandle.hpp"
+#include "ICallable.hpp"
 #include "plugin_helpers/PluginAPI.h"
 #include "plugin_helpers/platform.hpp"
 #include "logger/Logger.hpp"
 #include <string>
 #include <winerror.h>
+#include <algorithm>
 
 #define LOG Logger::instance()
 
@@ -76,7 +78,12 @@ std::pair<int, int> PluginHandle::arity(std::string* err_out) const{
 Precedence PluginHandle::precedence(std::string* err_out) const{
     if(info){
         LOG.info("Successfully get plugin precedence: " + path, "PluginHandle::precedence");
-        return Precedence::ZERO;
+        if(info->is_oper){
+            return Precedence((std::min)(info->prec, unsigned(3)));
+        }
+        else{
+            return Precedence::THIRD;
+        }
     }
     if(err_out) *err_out = "Pugin_info is nullptr: " + path;
     LOG.error("Plugin info is nullptr: " + path, "PluginHandle::precedence");
@@ -141,10 +148,13 @@ double PluginHandle::call(std::vector<double> const & args, std::string* err_out
     }
 
     if(err_code != 0){
-        std::string err;
+        std::string err, user_err;
         if(err_code != 0) err =  "Plugin returned error Error code: " + std::to_string(err_code);
-        if(err_msg[0] != '0') err += " Error message: " + std::string(err_msg);
-        if(err_out) *err_out = err;
+        if(err_msg[0] != '0'){
+            err += " Error message: " + std::string(err_msg);
+            user_err = std::string(err_msg);
+        } 
+        if(err_out) *err_out = user_err;
         LOG.error(err, "PluginHandle::call");
         return 0.0;
     }

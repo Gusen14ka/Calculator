@@ -77,10 +77,11 @@ std::vector<Token> Lexer::tokenize(std::string& err_out){
             }
             default:{
                 auto pos = cur_;
-                while(!std::isalnum(u_ch) && u_ch != ' ' && cur_ < end_){
+                ++cur_;
+                while(!std::isalnum(static_cast<unsigned char>(input_[cur_])) && static_cast<unsigned char>(input_[cur_]) != ' ' && cur_ < end_){
                     ++cur_;
                 }
-                output.emplace_back(Token::Op(input_.substr(cur_ - pos), pos));
+                output.emplace_back(Token::Op(input_.substr(pos, cur_ - pos), pos));
             }
         }
     }

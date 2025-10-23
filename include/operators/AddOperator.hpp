@@ -9,7 +9,7 @@ class AddOperator : public ICallable{
 public:
     AddOperator() = default;
     std::string name(std::string* err_out) const override { return "+"; }
-    Precedence precedence(std::string* err_out) const override { return Precedence::THIRD; }
+    Precedence precedence(std::string* err_out) const override { return Precedence::ZERO; }
     bool is_right_assoc_operator(std::string* err_out) const override { return false; }
     std::pair<int, int> arity(std::string* err_out) const override { return {2, 2}; }
     double call(std::vector<double> const & args, std::string * err_out) override {

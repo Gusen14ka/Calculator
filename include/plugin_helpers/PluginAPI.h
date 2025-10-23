@@ -61,6 +61,9 @@ struct PluginInfo{
 
     // Является ли правоассоциативным оператором
     bool is_right_assoc_oper;
+
+    // Приоритет в соответсвии с IOperator::Op_precedence
+    unsigned prec;
 };
 
 // Экспортируемые функции в плагине:

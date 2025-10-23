@@ -11,17 +11,15 @@ static PluginInfo info;
 static HostApi* host_;
 static bool initialized = false;
 
-static constexpr double PI = 3.14159265358979323846;
-
 PLUGIN_EXPORT int plugin_get_info(PluginInfo** const out_info){
     
-    static char const* const aliases[] = {"sinus", nullptr};
-    static unsigned const alias_lens[]= {5};
-    info.name = "sin";
-    info.name_len = 3;
+    static char const* const aliases[] = {nullptr};
+    static unsigned const alias_lens[]= {0};
+    info.name = "ln";
+    info.name_len = 2;
     info.aliases = aliases;
     info.alias_lens = alias_lens;
-    info.alias_count = 1;
+    info.alias_count = 0;
     info.min_args = 1;
     info.max_args = 1;
     info.func = [](unsigned argc, double const* argv, int* err, 
@@ -30,19 +28,28 @@ PLUGIN_EXPORT int plugin_get_info(PluginInfo** const out_info){
         if(argc != 1){
             *err = 1;
             snprintf(err_msg, err_msg_size,
-                "sin() expects 1 argument, get %d", argc);
-            std::string host_err = "[ERROR] [plugins\\funcsin.cpp::sin] Expected 1 argument, got " + std::to_string(argc);
+                "ln() expects 1 argument, get %d", argc);
+            std::string host_err = "[ERROR] [plugins\\funcln.cpp::ln] Expected 1 argument, got " + std::to_string(argc);
             host_->report_error(host_err.data(), host_err.size());
 
             return 0.0;
         }
-        std::string host_log = "[INFO] [plugins\\funcsin.cpp::sin] sin function sucesfully computed";
+        if(argv[0] <= 0){
+            *err = 1;
+            snprintf(err_msg, err_msg_size,
+                "ln() expects positive argument, get %lf", argv[0]);
+            std::string host_err = "[ERROR] [plugins\\funcln.cpp::ln] Expected positive argument, got " + std::to_string(argv[0]);
+            host_->report_error(host_err.data(), host_err.size());
+
+            return 0.0;
+        }
+        std::string host_log = "[INFO] [plugins\\funcln.cpp::ln] ln function sucesfully computed";
         host_->log(host_log.data(), host_log.size());
 
-        return std::sin((argv[0] / 180) * PI);
+        return std::log(argv[0]);
     };
     info.abi_version = 1;
-    info.description = "Sine function. Expect 1 argument in degrees";
+    info.description = "Natural logarithm function. Expect 1 argument";
     *out_info = &info;
     return 0;
 }
@@ -62,7 +69,7 @@ PLUGIN_EXPORT int plugin_init(HostApi const * host, char* err_msg,
     
     initialized = true;
 
-    std::string host_log = "[INFO] [plugins\\funcsin.cpp::plugin_init] Plugin funcsin successfully initialized";
+    std::string host_log = "[INFO] [plugins\\funcln.cpp::plugin_init] Plugin funcln successfully initialized";
     host_->log(host_log.data(), host_log.size());
 
     return 0;
@@ -71,12 +78,12 @@ PLUGIN_EXPORT int plugin_init(HostApi const * host, char* err_msg,
 PLUGIN_EXPORT int plugin_shutdown(){
     if(!initialized){
         if(host_ && host_->log) {
-            std::string host_err = "[ERROR] [plugins\\funcsin.cpp::plugin_shutdown] Funcsin plugin_shutdown called before init";
+            std::string host_err = "[ERROR] [plugins\\funcln.cpp::plugin_shutdown] Funcln plugin_shutdown called before init";
             host_->report_error(host_err.data(), host_err.size());
         }
         return 1;
     }
-    std::string host_log = "[INFO] [plugins\\funcsin.cpp::plugin_shutdown] Plugin funcsin successfuly shutdowned";
+    std::string host_log = "[INFO] [plugins\\funcln.cpp::plugin_shutdown] Plugin funcln successfuly shutdowned";
     host_->log(host_log.data(), host_log.size());
     initialized = false;
     host_ = nullptr;

@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(OpPower_plugin LANGUAGES CXX)
+
+# Require modern C++ and fix typos
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Создаём динамическую библиотеку
+add_library(opPower SHARED opPower.cpp)
+
+# Ссылка на внешний API - путь не менять
+target_include_directories(opPower PRIVATE ${CMAKE_SOURCE_DIR}/../../include)
+
+# Объявляем макрос
+target_compile_definitions(opPower PRIVATE BUILD_PLUGIN)
+
+get_filename_component(PLUGIN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/../../build/plugins" ABSOLUTE)
+
+# Положим сборочные артефакты в одно место
+set_target_properties(opPower PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${PLUGIN_OUTPUT_DIR}"
+)

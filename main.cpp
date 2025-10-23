@@ -64,6 +64,10 @@ int main(){
             continue;
         }
         auto res = executor.execute(items, err);
+        if(!err.empty()){
+            critical_error_call(err);
+            continue;
+        }
 
         if(res){
             std::cout << "Result:\n" << res.value() << std::endl;

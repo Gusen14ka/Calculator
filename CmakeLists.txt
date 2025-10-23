@@ -19,6 +19,7 @@ add_executable(Calc
     include/ICallable.hpp
     include/operators/IOperator.hpp
     include/operators/AddOperator.hpp
+    include/operators/UnarAddOperator.hpp
     include/operators/SubOperator.hpp
     include/operators/MulOperator.hpp
     include/operators/DivOperator.hpp

@@ -30,14 +30,15 @@ void Executor::evaluate(RPN_Callable const & callItem, std::string& out_err){
         stack_.pop_back();
     }
 
-    std::string err1, err2;
+    std::string err1, err2, log_err;
     auto res = callItem.ptr->call(args, &err1);
     if(err1.size() != 0){
-        out_err = "Error in apllying callable object " + err1 + callItem.ptr->name(&err2);
+        out_err = err1;
+        log_err = "Error in apllying callable object " + err1 + ": " + callItem.ptr->name(&err2);
         if(!err2.empty()){
-            out_err += "Error in callable->name: " + err2;
+            log_err += "Error in callable->name: " + err2;
         }
-        LOG.error(out_err, "Executor::evaluate");
+        LOG.error(log_err, "Executor::evaluate");
         return;
     }
 
@@ -59,7 +60,7 @@ std::optional<double> Executor::execute(std::vector<RPN_item> const & items, std
     for(auto const & item : items){
         std::visit(vis, item);
         if(!err.empty()){
-            out_err = "Error in executor: " + err;
+            out_err = err;
             return std::nullopt;
         }
     }

@@ -1,5 +1,7 @@
 #include "functional/Parser.hpp"
+#include "functional/Lexer.hpp"
 #include "logger/Logger.hpp"
+#include "operators/IOperator.hpp"
 #include <charconv>
 #include <string>
 #include <variant>
@@ -67,6 +69,7 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens, s
             // Токен - оператор
             case Token::Type::OP: {
                 bool isUnary = (prev == Token::OP || prev == Token::LPAREN || prev == Token::COMMA);
+                prev = Token::OP;
                 unsigned arity = isUnary ? 1 : 2;
                 auto opInfo = opReg_.find_operator(tok.text, isUnary);
                 if(!opInfo){
@@ -89,7 +92,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens, s
                         // если текущий оператор лево-ассоциативный и следующий оператор имеет такой же приоритет
                         // то убираем его со стека и пушим в output
                         if(!opInfo->is_right_assoc_operator(&err)){
-                            if(opInfo->precedence(&err) == topInfo->precedence(&err)){
+                            auto a = opInfo->precedence(&err);
+                            auto b = topInfo->precedence(&err);
+                            if(opInfo->precedence(&err) <= topInfo->precedence(&err)){
                                 goToPop = true;
                             }
                         }
@@ -106,7 +111,9 @@ std::vector<RPN_item> Parser::shunting_yard(std::vector<Token> const & tokens, s
                         }
 
                         if(goToPop){
-                            output.emplace_back(RPN_Callable{topInfo, arity});
+                            std::string err;
+
+                            output.emplace_back(RPN_Callable{topInfo, topOp->arity});
                             stack.pop_back();
                             continue;
                         }

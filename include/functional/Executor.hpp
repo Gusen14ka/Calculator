@@ -22,7 +22,7 @@ private:
 
 struct Visitor{
     Executor& executor;
-    std::string err;
+    std::string& err;
     void operator()(RPN_Number const & numItem);
     void operator()(RPN_Callable const & callItem);
 };
