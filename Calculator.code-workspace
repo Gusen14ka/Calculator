@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "plugins/opUnarMinus"
+		},
+		{
+			"path": "plugins/opPower"
 		}
 	],
 	"settings": {}
